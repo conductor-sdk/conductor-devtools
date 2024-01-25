@@ -6,10 +6,12 @@
 npm install cdt -g
 ```
 
-or 
+or clone the repository. Build and install as follow:
 
 ```bash
-yarn add cdt -g
+nmp install
+npm run build
+npm install -g .
 ```
 
 ## Usage
@@ -17,7 +19,7 @@ yarn add cdt -g
 ```bash
 cdt --type worker --lang javascript --name mydemo --task mytask
 ```
-This command will generate files in the conductor-sdk/boilerplates repository, located at /javascript/worker/core.
+This command will generate files located in the conductor-sdk/boilerplates repository, attributes lang and type will pick the corresponding boilerplate (Ex: /javascript/worker/core).
 
 You can access a specific boilerplate using the --boilerplate argument.
 
