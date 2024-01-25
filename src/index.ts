@@ -5,7 +5,15 @@ import fs from 'fs';
 import path from 'path';
 import figlet from 'figlet';
 
-//add the following line
+const reset = "\x1b[0m";
+
+const log = {
+  green: (text: string) => console.log("\x1b[32m" + text + reset),
+  red: (text: string) => console.log("\x1b[31m" + text + reset),
+  blue: (text: string) => console.log("\x1b[34m" + text + reset),
+  white: (text: string) => console.log("\x1b[37m" + text + reset),
+};
+
 const program = new Command();
 
 console.log(figlet.textSync("Conductor DevTools"));
@@ -14,40 +22,36 @@ program
   .version("1.0.0")
   .description("CLI for creating conductor client app")
   .option("-l, --lang  <value>", "set the programming language")
-  .option("-a, --app", "create an client app from boilerplate")
-  .option("-w, --worker", "create a worker app from boilerplate")
+  .option("-ty, --type  <value>", "type of boilerplate (worker/app)")
   .option("-n, --name <value>", "name of the client app")
-  .option("-t, --task <value>", "name of the task associated to the worker")
+  .option("-ta, --task <value>", "name of the task associated to the worker")
+  .option("-b, --boilerplate <value>", "name of boilerplate")
   .parse(process.argv);
 
 const options = program.opts();
 
-const createAppProject = (lang: string, name: string) => {
-    fs.mkdirSync(name);
-}
-
-const createWorkerProject = (lang: string, name: string, task: string) => {
-    console.log('creating worker project...');
-    fs.mkdirSync(name);
-    if (lang === "javascript") {
-        fetch('https://raw.githubusercontent.com/conductor-sdk/boilerplates/initial-structure/javascript/workers/index.js').then( resIndex => resIndex.text()).then( dataIndex => {
-            console.log('Creating index.js file...');
-            dataIndex = dataIndex.replace( "taskname", task );
-            fs.writeFileSync( name + '/index.js', dataIndex );            
-            fetch('https://raw.githubusercontent.com/conductor-sdk/boilerplates/initial-structure/javascript/workers/package.json').then( resPackage => resPackage.text()).then( dataPackage => {
-                console.log('Creating package.json file...');
-                dataPackage = dataPackage.replace( "appname", name );
-                fs.writeFileSync( name + '/package.json', dataPackage );
-                console.log(name + ' worker project created successfully.');
+const createProject = (options: any) => {
+    try {
+        log.white('creating ' + options.name + ' ' + options.type + ' project...');
+        fs.mkdirSync(options.name);
+        
+        const bpl = options.boilerplate ? options.boilerplate : 'core';
+        fetch('https://raw.githubusercontent.com/conductor-sdk/boilerplates/main/'+options.lang+'/'+options.type+'/'+bpl+'/bp.json').then( res => res.text()).then( data => {
+            const def = JSON.parse(data);
+            def.files.forEach( (element: { name: string, fields: [{ name: string, attribute: string}] }) => {
+                fetch('https://raw.githubusercontent.com/conductor-sdk/boilerplates/main/'+options.lang+'/'+options.type+'/'+bpl+'/'+element.name).then( resElement => resElement.text()).then( dataElement => {
+                    log.white('Creating ' + element.name + ' file...');
+                    element.fields.forEach( (fieldElement: { name: string, attribute: string }) => {
+                        dataElement = dataElement.replace( fieldElement.name, options[fieldElement.attribute] );
+                    })
+                    fs.writeFileSync( options.name + '/' + element.name, dataElement );
+                    log.green(element.name + ' file created successfully.');
+                });
             });
         });
-    } else {
-        console.log('ERROR: Unsupported programming language.');
+    } catch (error) {
+        log.red( 'Error generating project from boilerplate');
     }
 }
 
-if (options.app) {
-    createAppProject(options.lang, options.name);
-} else if (options.worker) {
-    createWorkerProject(options.lang, options.name, options.task);
-}
+createProject(options);
